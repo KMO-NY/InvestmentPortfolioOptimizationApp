@@ -14,53 +14,36 @@ import quantstats as qs
 import ta
 import yfinance as yf
 
+# Functions I created
+from utils import validate_exchange_symbols
+from utils import sharpe_ratio
+from utils import max_sharpe_ratio
+from utils import sortino_ratio
+from utils import get_stock_data
+from utils import initialize_session_state
+from utils import clear_button_clicked
+# Variables
+from utils import exchanges
+from utils import zar
+from utils import risk
+
 st.title("INVESTMENT PORTFOLIO OPTIMISER")
 
-# Initialize session state for storing stock entries
-if "stock_list" not in st.session_state:
-    st.session_state["stock_list"] = []  # List to store stock entries as dictionaries
+st.sidebar.header("Navigation")
+st.sidebar.write("Use the sidebar to navigate between pages. After loading your data, head on over to the Analysis page.")
+
+# st.write("Welcome to the Investment Portfolio Optimization App.")
+# st.write("Use this page to manage your stock portfolio.")
+
+# initialize session_state:
+initialize_session_state()
 
 # "Clear" button to reset form and session state
 clear_col1, clear_col2 = st.columns([3,1])
 if clear_col2.button("Clear Stock Data"):
-    st.session_state["stock_list"] = []  # Clear session state for stocks
+    clear_button_clicked()
 
-# Create a dict that has the extensions of the various countries
-# Give one example of publicly traded companies from each listed country
-exchanges = [
-    {"country": "United States", "symbol": "AAPL", "suffix": ""},      # US (No suffix)
-    {"country": "South Africa", "symbol": "AGL.JO", "suffix": ".JO"},  # JSE
-]
-
-# Function to verify stock symbols dynamically
-def validate_exchange_symbols(exchange_list):
-    """
-    This functions uses the ticker to fetch infromation on the example companies given in the list of dictionaries.
-    Once the company is verified, the ticker is deemed as valid. It is then linked to the Country/area
-
-    Example:
-    Anglo America is traded on the JSE with the ticker suffex '.JO', the function will find it.
-    '.JO' will then be linked to South Africa --> {"South Africa": ".JO"}
-    """
-    country_suffix_map = {}
-    for exchange in exchange_list:
-        country = exchange["country"]
-        symbol = exchange["symbol"]
-        suffix = exchange["suffix"]
-
-        try:
-            ticker = yf.Ticker(symbol)
-            if "longName" in ticker.info:  # Check if the stock data is valid
-                country_suffix_map[country] = suffix
-                print(f"Validated: {country} -> {suffix}")
-            else:
-                print(f"Could not validate: {country} -> {symbol}")
-        except Exception as e:
-            print(f"Error validating {country} with symbol {symbol}: {e}")
-
-    return country_suffix_map
-
-# Generate the dictionary dynamically
+#  Generate the dictionary dynamically
 country_suffix_map = validate_exchange_symbols(exchanges)
 
 # Dropdown for country selection
@@ -71,17 +54,18 @@ selected_suffix = country_suffix_map[selected_country]
 
 # dates
 date_col1, date_col2 = st.columns(2)
-start_date = date_col1.date_input("From", format = "DD/MM/YYYY")
-end_date = date_col2.date_input("To", format = "DD/MM/YYYY")
 
-# Creating a currency_list to add the various currencies for the chosen countries
-currency_list = [
-    {"country": "United States", "currency": "$"},      
-    {"country": "South Africa", "currency": "R"}
-]
-usd = currency_list[0]["currency"]
-zar = currency_list[1]["currency"]
+start_date = date_col1.date_input("From:", format= "DD/MM/YYYY", value=st.session_state.get("start_date", None))
+end_date = date_col2.date_input("To:", format= "DD/MM/YYYY", value=st.session_state.get("end_date", None))
 
+if start_date is not None:
+    st.session_state["start_date"] = start_date
+if end_date is not None:
+    st.session_state["end_date"] = end_date
+
+# risk appetite
+# risk_choice = st.selectbox("What Return Are You Aiming For?", options=list(risk.keys()))
+               
 # Section for user stock input
 st.write("### Add Stocks and Amount Invested")
 
@@ -96,28 +80,17 @@ with st.form("add_stock_form", clear_on_submit=True):
         if ticker and amount > 0:
             # Add stock entry to the list
             st.session_state["stock_list"].append({"Ticker": ticker.upper(), "Amount Invested": amount})
-            st.success(f"Added {ticker} with amount {amount:.2f}.")
+            st.success(f"Added {ticker.upper()}{selected_suffix} with amount {zar}{amount:,.2f}".replace(",", " "))        # format amount for readbility
         else:
             st.error("Please enter a valid ticker symbol and investment amount.")
-
-def get_stock_data(stock_list, 
-                   country_mapping = country_suffix_map, 
-                   start_date = start_date, 
-                   end_date = end_date):
-    """
-    This function is used to retrive stock data for the chosen stocks
-    Returns the value of the stock at market close.
-    """
-    stocks = [stock + selected_suffix for stock in stock_list]
-    stock_data = yf.download(stocks, start=start_date, end=end_date)
-    stock_data = stock_data['Close']
-    return stock_data
-
+            
 # Display the current portfolio
 if st.session_state["stock_list"]:
     st.write("Your Current Portfolio:")
-    portfolio_df = pd.DataFrame(st.session_state["stock_list"])
-    st.table(portfolio_df.style.format({"Amount Invested": "{:.2f}"}))      # formating so it shows up to 2 decimal places in the displayed df
+    # Update portfolio DataFrame in session state
+    st.session_state["portfolio_df"] = pd.DataFrame(st.session_state["stock_list"])
+    st.dataframe(st.session_state["portfolio_df"])
+    portfolio_df = pd.DataFrame(st.session_state["portfolio_df"])      
 
 # Button to finalize and show pie chart
 if st.button("Load Stock Data"):
