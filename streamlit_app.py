@@ -27,7 +27,8 @@ from utils import exchanges
 from utils import zar
 from utils import risk
 
-st.title("INVESTMENT PORTFOLIO OPTIMISER")
+st.title("Investment Portfolio Optimization")
+st.write("### A Data Science Project by Kgosigadi Nyepele")
 
 st.sidebar.header("Navigation")
 st.sidebar.write("Use the sidebar to navigate between pages. After loading your data, head on over to the Analysis page.")
