@@ -16,25 +16,19 @@ import yfinance as yf
 
 # Functions I created
 from utils import validate_exchange_symbols
-from utils import sharpe_ratio
-from utils import max_sharpe_ratio
-from utils import sortino_ratio
-from utils import get_stock_data
 from utils import initialize_session_state
 from utils import clear_button_clicked
+
 # Variables
 from utils import exchanges
 from utils import zar
-from utils import risk
 
 st.title("Investment Portfolio Optimization")
 st.write("### A Data Science Project by Kgosigadi Nyepele")
+st.write("Use this page to enter data on your stock portfolio.")
 
 st.sidebar.header("Navigation")
 st.sidebar.write("Use the sidebar to navigate between pages. After loading your data, head on over to the Analysis page.")
-
-# st.write("Welcome to the Investment Portfolio Optimization App.")
-# st.write("Use this page to manage your stock portfolio.")
 
 # initialize session_state:
 initialize_session_state()
@@ -65,7 +59,14 @@ if end_date is not None:
     st.session_state["end_date"] = end_date
 
 # risk appetite
-# risk_choice = st.selectbox("What Return Are You Aiming For?", options=list(risk.keys()))
+risk_choice = st.number_input("What Return Are You Aiming For?", min_value=0, max_value=100)
+
+if risk_choice >= 1:
+    st.write(f"Your Selected Portfolio Will Be Optimised To Give You {risk_choice}% Returns on Investment.")
+else:
+    st.write("Please Select Your Ideal Return On Investment For Your Portfolio.")
+
+st.session_state["risk_choice"] = risk_choice       # Updating the chosen risk for the session.
                
 # Section for user stock input
 st.write("### Add Stocks and Amount Invested")

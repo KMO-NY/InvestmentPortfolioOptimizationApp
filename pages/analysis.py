@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 from yfinance import Ticker
 from datetime import datetime, timedelta
 # from pypfopt.efficient_frontier import EfficientFrontier
@@ -9,27 +9,21 @@ from datetime import datetime, timedelta
 
 
 # Functions I created
-from utils import validate_exchange_symbols
-# from utils import sharpe_ratio
-# from utils import max_sharpe_ratio
-from utils import sortino_ratio
 from utils import get_stock_data
-from utils import get_daily_returns
 from utils import load_session_state
-from utils import clear_button_clicked
-# from utils import calculate_portfolio_performance
-# from utils import generate_efficient_frontier
+from utils import calculate_portfolio_performance
+from utils import generate_efficient_frontier
+from utils import plot_efficient_frontier
+
 # Variables
-from utils import exchanges
 from utils import zar
-from utils import risk
 
 # Add Title
 st.title("Portfolio Analysis")
 
 # Load session_state
-ticker, weights, start_date, end_date = load_session_state()
-
+ticker, weights, risk_choice, start_date, end_date = load_session_state()
+ticker = ticker.tolist()
 if not ticker and not weights:
     st.error("No portfolio data available. Please add stocks on the main page.")
     st.stop()
@@ -60,14 +54,19 @@ try:
                 )
 except Exception as e:
     st.error(f"Error fetching stock data: {e}")
-
+# test: st.dataframe(stock_data)
 # Section: Efficient Frontier
 st.header("Efficient Frontier")
-st.write("Coming soon")
+# st.write("Coming soon")
 # st.write("Coming soon: Maximize Sharpe Ratio & Sortino Ratio!")
 
-# mean_returns = daily_returns_df.mean()
-# cov_matrix = daily_returns_df.cov()
+mean_returns = daily_returns_df.mean()
+cov_matrix = daily_returns_df.cov()
+current_portfolio_returns, current_portfolio_volatility = calculate_portfolio_performance(weights, mean_returns, cov_matrix, stock_data)
+results, weights_record = generate_efficient_frontier(mean_returns, cov_matrix, stock_data)
+fig = plot_efficient_frontier(results, weights_record, mean_returns, cov_matrix, stock_data, risk_choice)
+st.pyplot(fig)
+
 # efficient_frontier = EfficientFrontier(mean_returns, cov_matrix, solver="OSQP")
 
 # # Generate Efficient Frontier data
