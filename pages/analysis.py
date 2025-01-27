@@ -20,6 +20,8 @@ from utils import zar
 
 # Add Title
 st.title("Portfolio Analysis")
+st.sidebar.header("Navigation")
+st.sidebar.write("Once You're Done With The Analysis, Head On Over to The Predictions Page!")
 
 # Load session_state
 ticker, weights, start_date, end_date = load_session_state()
@@ -66,7 +68,7 @@ results, weights_record = generate_efficient_frontier(mean_returns, cov_matrix, 
 fig, max_sharpe_idx, min_vol_idx, sortino_idx = plot_efficient_frontier(results, weights_record, mean_returns, cov_matrix, stock_data)
 st.pyplot(fig)
 comparison_df = tabulate_portfolio_info(mean_returns, cov_matrix, stock_data, max_sharpe_idx, sortino_idx, min_vol_idx, weights_record, tickers = ticker)
-st.dataframe(comparison_df)
+st.table(comparison_df.iloc[:, :3])  # Display only the first three columns
 
 # Section: Portfolio Split
 st.write("### Suggested Portfolio Split")
@@ -75,4 +77,4 @@ suggested_portfolio = cols1.selectbox("Select Your Preferred Ratio", options=["M
 
 st.session_state["suggested_portfolio"] = suggested_portfolio
 
-plot = suggested_portfolio_split(ticker, weights)
+plot = suggested_portfolio_split(portfolio_table=comparison_df, tickers=ticker)

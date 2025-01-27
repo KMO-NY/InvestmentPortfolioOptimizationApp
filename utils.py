@@ -180,7 +180,14 @@ def plot_efficient_frontier(results, weights_record, mean_returns, cov_matrix, s
     # Return the figure for rendering
     return fig, max_sharpe_idx, min_vol_idx, sortino_idx
 
-def tabulate_portfolio_info(mean_returns, cov_matrix, stock_data, max_sharpe_idx, sortino_idx, min_vol_idx, weights_record, tickers):
+def tabulate_portfolio_info(mean_returns, 
+                            cov_matrix, 
+                            stock_data, 
+                            max_sharpe_idx, 
+                            sortino_idx, 
+                            min_vol_idx, 
+                            weights_record, 
+                            tickers):
     """
     Tabulate portfolio information for Max Sharpe, Sortino, and Min Volatility portfolios.
     """
@@ -200,7 +207,7 @@ def tabulate_portfolio_info(mean_returns, cov_matrix, stock_data, max_sharpe_idx
             "Portfolio Type": name,
             "Return (%)": f"{portfolio_return * 100:.2f}%",
             "Volatility (%)": f"{portfolio_volatility * 100:.2f}%",
-            **dict(zip(tickers, weights_percent)),  # Add weights for each ticker
+             **dict(zip(tickers, weights_percent)),  # Add weights for each ticker
         }
         table_data.append(row)
 
@@ -208,23 +215,36 @@ def tabulate_portfolio_info(mean_returns, cov_matrix, stock_data, max_sharpe_idx
     portfolio_table = pd.DataFrame(table_data)
     return portfolio_table
 
-def suggested_portfolio_split(tickers, weights):
+def suggested_portfolio_split(portfolio_table, tickers):
     """
-    Display portfolio breakdown as a percentage for the selected portfolio.
+    Display a pie chart showing the stock breakdown for the selected portfolio type.
+    
+    Parameters:
+        portfolio_table (DataFrame): DataFrame containing portfolio details.
+        tickers (list): List of ticker symbols.
     """
-    if "suggested_portfolio" in st.session_state and st.session_state["suggested_portfolio"]:
-        # Create a DataFrame for pie chart data
-        breakdown = {"Ticker": tickers, "Weight": [weight * 100 for weight in weights]}
-        breakdown_df = pd.DataFrame(breakdown)
+    # Ensure the "suggested_portfolio" key exists in session state
+    if "suggested_portfolio" not in st.session_state or not st.session_state["suggested_portfolio"]:
+        st.error("Please select a portfolio type.")
+        return
 
-        # Generate pie chart
+    # Get the user's choice
+    selected_portfolio = st.session_state["suggested_portfolio"]
+
+    # Filter the table for the selected portfolio type
+    selected_data = portfolio_table[portfolio_table["Portfolio Type"] == selected_portfolio]
+
+    if not selected_data.empty:
+        # Extract stock weights for the selected portfolio
+        weights = [float(w.strip('%')) for w in selected_data.iloc[0][tickers].values]
+
+        # Create a pie chart
         fig = px.pie(
-            breakdown_df,
-            values="Weight",
-            names="Ticker",
-            title="Portfolio Division",
-            hole=0.4,  # Makes it a donut chart
+            names=tickers,
+            values=weights,
+            title=f"Portfolio Breakdown: {selected_portfolio}",
+            hole=0.4,  # Donut chart
         )
         st.plotly_chart(fig)
     else:
-        st.error("Select an Optimization Ratio")
+        st.error(f"No data available for the selected portfolio: {selected_portfolio}.")
