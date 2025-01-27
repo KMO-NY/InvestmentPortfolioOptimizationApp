@@ -9,6 +9,7 @@ from scipy.optimize import minimize
 
 # Data visualization
 import matplotlib.pyplot as plt
+import plotly.express as px
 
 # Financial data
 import quantstats as qs
@@ -21,30 +22,25 @@ def initialize_session_state():
         st.session_state["stock_list"] = []  # Initialize stock_list
     if "portfolio_df" not in st.session_state:
         st.session_state["portfolio_df"] = pd.DataFrame(columns=["Ticker", "Amount Invested"])  # Initialize portfolio_df
-    if "risk_choice" not in st.session_state:
-        st.session_state["risk_choice"] = 0      # Initialize risk_choice
     if "start_date" not in st.session_state:
         st.session_state["start_date"] = None  # Initialize start_date
     if "end_date" not in st.session_state:
         st.session_state["end_date"] = None  # Initialize end_date
 
 def load_session_state():
-    ticker, weights, risk_choice, start_date, end_date = [], [], 0, None, None
+    ticker, weights, start_date, end_date = [], [], None, None
 
     if "portfolio_df" in st.session_state and not st.session_state["portfolio_df"].empty:
         portfolio_df = st.session_state["portfolio_df"]     # load portfolio_df
         ticker = portfolio_df["Ticker"]     # .tolist()
         weights = portfolio_df["Amount Invested"]       # .tolist()  
 
-    if "risk_choice" in st.session_state:
-        risk_choice = st.session_state["risk_choice"]
-
     if "start_date" in st.session_state:
         start_date = st.session_state["start_date"]  # load start_date
     if "end_date" in st.session_state:
         end_date = st.session_state["end_date"]  # load end_date
 
-    return ticker, weights, risk_choice, start_date, end_date
+    return ticker, weights, start_date, end_date
 
 # Clear session state for a different analysis
 def clear_button_clicked():
@@ -141,21 +137,18 @@ def generate_efficient_frontier(mean_returns, cov_matrix, stock_data, num_portfo
 
     return results, weights_record
 
-import matplotlib.pyplot as plt
 
-def plot_efficient_frontier(results, weights_record, mean_returns, cov_matrix, stock_data, risk_choice):
+def plot_efficient_frontier(results, weights_record, mean_returns, cov_matrix, stock_data):
     """
     Plot the efficient frontier and highlight specific portfolios.
-    
+
     Parameters:
         - results: Array from `generate_efficient_frontier` with volatility, return, and Sharpe ratio.
         - weights_record: List of portfolio weights from `generate_efficient_frontier`.
         - mean_returns: Expected returns of each stock.
         - cov_matrix: Covariance matrix of stock returns.
         - stock_data: DataFrame with historical stock prices.
-        - risk_choice: Desired portfolio return input by the user.
     """
-    # Unpack results
     volatilities = results[0]
     returns = results[1]
     sharpe_ratios = results[2]
@@ -164,41 +157,74 @@ def plot_efficient_frontier(results, weights_record, mean_returns, cov_matrix, s
     max_sharpe_idx = np.argmax(sharpe_ratios)
     min_vol_idx = np.argmin(volatilities)
 
-    # Find portfolio for user-defined return
-    user_weights = None
-    user_volatility = None
-    for i, ret in enumerate(returns):
-        if np.isclose(ret, risk_choice, atol=0.001):  # Find closest return
-            user_weights = weights_record[i]
-            user_volatility = volatilities[i]
-            break
+    # Create the plot
+    fig, ax = plt.subplots(figsize=(10, 6))
+    scatter = ax.scatter(volatilities, returns, c=sharpe_ratios, cmap='viridis', marker='o', s=10)
+    plt.colorbar(scatter, label='Sharpe Ratio')
+    ax.set_xlabel('Volatility (Risk)')
+    ax.set_ylabel('Return')
+    ax.set_title('Efficient Frontier')
 
-    # Plot efficient frontier
-    plt.figure(figsize=(10, 6))
-    plt.scatter(volatilities, returns, c=sharpe_ratios, cmap='viridis', marker='o', s=10)
-    plt.colorbar(label='Sharpe Ratio')
-    plt.xlabel('Volatility (Risk)')
-    plt.ylabel('Return')
-    plt.title('Efficient Frontier')
+    # Highlight specific portfolios
+   
+    ax.scatter(volatilities[max_sharpe_idx], returns[max_sharpe_idx], marker='*', color='red', s=200, label='Max Sharpe Ratio')
+    ax.scatter(volatilities[min_vol_idx], returns[min_vol_idx], marker='*', color='blue', s=200, label='Min Volatility')
 
-    # Highlight portfolios
-    if user_weights is not None:
-        # Highlight User-specified portfolio
-        plt.scatter(user_volatility, risk_choice, marker='*', color='orange', s=200, label='User Defined Return')
-        plt.legend(loc='best')
-        st.success(f"A portfolio with the desired return of {risk_choice:.2%} has been found and highlighted.")
+    # If Sortino Ratio is part of results
+    sortino_idx = np.argmax(results[3]) if results.shape[0] > 3 else None
+    if sortino_idx is not None:
+        ax.scatter(volatilities[sortino_idx], returns[sortino_idx], marker='*', color='green', s=200, label='Sortino Ratio')
+
+    ax.legend(loc='best')
+
+    # Return the figure for rendering
+    return fig, max_sharpe_idx, min_vol_idx, sortino_idx
+
+def tabulate_portfolio_info(mean_returns, cov_matrix, stock_data, max_sharpe_idx, sortino_idx, min_vol_idx, weights_record, tickers):
+    """
+    Tabulate portfolio information for Max Sharpe, Sortino, and Min Volatility portfolios.
+    """
+    # Extract weights for the specified portfolios
+    portfolios = {
+        "Max Sharpe Ratio": weights_record[max_sharpe_idx],
+        "Sortino Ratio": weights_record[sortino_idx],
+        "Min Volatility": weights_record[min_vol_idx],
+    }
+    
+    # Prepare a DataFrame
+    table_data = []
+    for name, weights in portfolios.items():
+        weights_percent = [f"{w * 100:.2f}%" for w in weights]  # Convert weights to percentage
+        portfolio_return, portfolio_volatility = calculate_portfolio_performance(weights, mean_returns, cov_matrix, stock_data)
+        row = {
+            "Portfolio Type": name,
+            "Return (%)": f"{portfolio_return * 100:.2f}%",
+            "Volatility (%)": f"{portfolio_volatility * 100:.2f}%",
+            **dict(zip(tickers, weights_percent)),  # Add weights for each ticker
+        }
+        table_data.append(row)
+
+    # Create the DataFrame
+    portfolio_table = pd.DataFrame(table_data)
+    return portfolio_table
+
+def suggested_portfolio_split(tickers, weights):
+    """
+    Display portfolio breakdown as a percentage for the selected portfolio.
+    """
+    if "suggested_portfolio" in st.session_state and st.session_state["suggested_portfolio"]:
+        # Create a DataFrame for pie chart data
+        breakdown = {"Ticker": tickers, "Weight": [weight * 100 for weight in weights]}
+        breakdown_df = pd.DataFrame(breakdown)
+
+        # Generate pie chart
+        fig = px.pie(
+            breakdown_df,
+            values="Weight",
+            names="Ticker",
+            title="Portfolio Division",
+            hole=0.4,  # Makes it a donut chart
+        )
+        st.plotly_chart(fig)
     else:
-        # Fallback to other portfolios
-        plt.scatter(volatilities[max_sharpe_idx], returns[max_sharpe_idx], marker='*', color='red', s=200, label='Max Sharpe Ratio')
-        plt.scatter(volatilities[min_vol_idx], returns[min_vol_idx], marker='*', color='blue', s=200, label='Min Volatility')
-
-        # If Sortino Ratio is part of results
-        sortino_idx = np.argmax(results[3]) if results.shape[0] > 3 else None
-        if sortino_idx is not None:
-            plt.scatter(volatilities[sortino_idx], returns[sortino_idx], marker='*', color='green', s=200, label='Max Sortino Ratio')
-
-        plt.legend(loc='best')
-        st.warning(f"No portfolio with the desired return of {risk_choice}% was found. Showing other options.")
-
-    plt.show()
-
+        st.error("Select an Optimization Ratio")

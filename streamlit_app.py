@@ -35,7 +35,7 @@ initialize_session_state()
 
 # "Clear" button to reset form and session state
 clear_col1, clear_col2 = st.columns([3,1])
-if clear_col2.button("Clear Stock Data"):
+if clear_col2.button("**:red[Clear Stock Data]**"):
     clear_button_clicked()
 
 #  Generate the dictionary dynamically
@@ -57,17 +57,7 @@ if start_date is not None:
     st.session_state["start_date"] = start_date
 if end_date is not None:
     st.session_state["end_date"] = end_date
-
-# risk appetite
-risk_choice = st.number_input("What Return Are You Aiming For?", min_value=0, max_value=100)
-
-if risk_choice >= 1:
-    st.write(f"Your Selected Portfolio Will Be Optimised To Give You {risk_choice}% Returns on Investment.")
-else:
-    st.write("Please Select Your Ideal Return On Investment For Your Portfolio.")
-
-st.session_state["risk_choice"] = risk_choice       # Updating the chosen risk for the session.
-               
+           
 # Section for user stock input
 st.write("### Add Stocks and Amount Invested")
 
