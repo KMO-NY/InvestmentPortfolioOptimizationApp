@@ -25,7 +25,7 @@ st.sidebar.write("Once You're Done With The Analysis, Head On Over to The Predic
 
 # Load session_state
 ticker, weights, start_date, end_date = load_session_state()
-ticker = ticker.tolist()
+
 if not ticker and not weights:
     st.error("No portfolio data available. Please add stocks on the main page.")
     st.stop()
@@ -67,7 +67,7 @@ cov_matrix = daily_returns_df.cov()
 results, weights_record = generate_efficient_frontier(mean_returns, cov_matrix, stock_data)
 fig, max_sharpe_idx, min_vol_idx, sortino_idx = plot_efficient_frontier(results, weights_record, mean_returns, cov_matrix, stock_data)
 st.pyplot(fig)
-comparison_df = tabulate_portfolio_info(mean_returns, cov_matrix, stock_data, max_sharpe_idx, sortino_idx, min_vol_idx, weights_record, tickers = ticker)
+comparison_df = tabulate_portfolio_info(mean_returns, cov_matrix, stock_data, max_sharpe_idx, sortino_idx, min_vol_idx, weights_record, tickers= ticker)
 st.table(comparison_df.iloc[:, :3])  # Display only the first three columns
 
 # Section: Portfolio Split
@@ -77,4 +77,4 @@ suggested_portfolio = cols1.selectbox("Select Your Preferred Ratio", options=["M
 
 st.session_state["suggested_portfolio"] = suggested_portfolio
 
-plot = suggested_portfolio_split(portfolio_table=comparison_df, tickers=ticker)
+plot = suggested_portfolio_split(portfolio_table=comparison_df, tickers= ticker)

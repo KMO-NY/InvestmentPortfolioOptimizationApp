@@ -32,7 +32,7 @@ def load_session_state():
 
     if "portfolio_df" in st.session_state and not st.session_state["portfolio_df"].empty:
         portfolio_df = st.session_state["portfolio_df"]     # load portfolio_df
-        ticker = portfolio_df["Ticker"]     # .tolist()
+        ticker = portfolio_df["Ticker"].tolist()
         weights = portfolio_df["Amount Invested"]       # .tolist()  
 
     if "start_date" in st.session_state:
@@ -113,7 +113,7 @@ def calculate_portfolio_performance(weights, mean_returns, cov_matrix, stock_dat
     annualised_portfolio_volatility = portfolio_volatility * np.sqrt(252/ trading_days)
     return annualised_portfolio_return, annualised_portfolio_volatility
 
-def generate_efficient_frontier(mean_returns, cov_matrix, stock_data, num_portfolios=50000, risk_free_rate=0):
+def generate_efficient_frontier(mean_returns, cov_matrix, stock_data, num_portfolios=5000, risk_free_rate=0):
     """
     Simulates random portfolios, and calculates their performance metrics.
     """
@@ -205,8 +205,8 @@ def tabulate_portfolio_info(mean_returns,
         portfolio_return, portfolio_volatility = calculate_portfolio_performance(weights, mean_returns, cov_matrix, stock_data)
         row = {
             "Portfolio Type": name,
-            "Return (%)": f"{portfolio_return * 100:.2f}%",
-            "Volatility (%)": f"{portfolio_volatility * 100:.2f}%",
+            "Return (%)": f"{portfolio_return * 100:.2f}%",       
+            "Volatility (%)": f"{portfolio_volatility * 100:.2f}%", 
              **dict(zip(tickers, weights_percent)),  # Add weights for each ticker
         }
         table_data.append(row)
