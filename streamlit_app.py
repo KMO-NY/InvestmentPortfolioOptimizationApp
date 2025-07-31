@@ -42,7 +42,7 @@ if clear_col2.button("**:red[Clear Stock Data]**"):
 country_suffix_map = validate_exchange_symbols(exchanges)
 
 # Dropdown for country selection
-selected_country = st.selectbox("Select Your Country:", options=list(country_suffix_map.keys()))
+selected_country = st.selectbox("Select Your Country:", options="South Africa")
 
 # Retrieve the suffix based on the selected country
 selected_suffix = country_suffix_map[selected_country]
