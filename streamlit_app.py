@@ -45,7 +45,7 @@ country_suffix_map = validate_exchange_symbols(exchanges)
 selected_country = st.selectbox("Select Your Country:", options="South Africa")
 
 # Retrieve the suffix based on the selected country
-selected_suffix = country_suffix_map[selected_country]
+selected_suffix = ".JO"
 
 # dates
 date_col1, date_col2 = st.columns(2)
